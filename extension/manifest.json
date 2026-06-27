@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "LeetGeek",
+  "version": "1.0.0",
+  "description": "Auto-commit LeetCode solutions to GitHub on every Accepted submission.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "http://localhost:3000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "LeetGeek"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["https://leetcode.com/*"]
+    }
+  ]
+}
