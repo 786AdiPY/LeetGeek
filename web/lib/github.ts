@@ -34,18 +34,26 @@ export function buildFilePaths(
   return { filePaths: [`${folder}/${slug}.${ext}`], ext };
 }
 
+const PLATFORM_URL: Record<string, string> = {
+  leetcode: "https://leetcode.com/problems",
+  geeksforgeeks: "https://www.geeksforgeeks.org/problems",
+  codechef: "https://www.codechef.com/problems",
+};
+
 export function buildFileContent(
   code: string,
   questionId: string,
   title: string,
   titleSlug: string,
   difficulty: string,
-  ext: string
+  ext: string,
+  platform = "leetcode"
 ): string {
   const cc = COMMENT[ext] ?? "//";
+  const base = PLATFORM_URL[platform] ?? PLATFORM_URL.leetcode;
   return (
-    `${cc} ${questionId}. ${title} [${difficulty}]\n` +
-    `${cc} https://leetcode.com/problems/${titleSlug}/\n\n` +
+    `${cc} ${title} [${difficulty}]\n` +
+    `${cc} ${base}/${titleSlug}/\n\n` +
     code
   );
 }

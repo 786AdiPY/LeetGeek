@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
     problem.title,
     problem.titleSlug,
     problem.difficulty,
-    ext
+    ext,
+    platform
   );
 
   const commitMessage = `solve: #${problem.questionId} ${problem.title} [${problem.difficulty}]`;
