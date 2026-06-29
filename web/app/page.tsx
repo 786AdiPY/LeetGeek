@@ -15,8 +15,8 @@ export default async function Home() {
           LeetGeek
         </h1>
         <p className="text-xl text-gray-400 mb-8">
-          Every accepted LeetCode submission automatically committed to your
-          GitHub repo. Install once, forget forever.
+          Every accepted LeetCode, GeeksForGeeks, and CodeChef submission
+          automatically committed to your GitHub repo. Install once, forget forever.
         </p>
         <div className="flex gap-6 justify-center mb-10 text-sm text-gray-500">
           <span><span className="text-green-400 mr-1">✓</span>No polling</span>

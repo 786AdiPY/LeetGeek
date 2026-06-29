@@ -1,4 +1,4 @@
-const BACKEND = 'http://localhost:3000';
+const BACKEND = 'https://leet-geek.vercel.app';
 
 console.log('[LeetGeek] CodeChef content script loaded');
 
