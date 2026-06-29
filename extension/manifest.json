@@ -2,16 +2,28 @@
   "manifest_version": 3,
   "name": "LeetGeek",
   "version": "1.0.0",
-  "description": "Auto-commit LeetCode solutions to GitHub on every Accepted submission.",
+  "description": "Auto-commit LeetCode, GeeksForGeeks, and CodeChef solutions to GitHub.",
   "permissions": ["storage"],
   "host_permissions": [
     "https://leetcode.com/*",
+    "https://www.geeksforgeeks.org/*",
+    "https://www.codechef.com/*",
     "http://localhost:3000/*"
   ],
   "content_scripts": [
     {
       "matches": ["https://leetcode.com/problems/*"],
       "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.geeksforgeeks.org/problems/*", "https://www.geeksforgeeks.org/problem/*"],
+      "js": ["content_gfg.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.codechef.com/problems/*", "https://www.codechef.com/*/problems/*"],
+      "js": ["content_codechef.js"],
       "run_at": "document_idle"
     }
   ],
@@ -26,6 +38,14 @@
     {
       "resources": ["inject.js"],
       "matches": ["https://leetcode.com/*"]
+    },
+    {
+      "resources": ["inject_gfg.js"],
+      "matches": ["https://www.geeksforgeeks.org/*"]
+    },
+    {
+      "resources": ["inject_codechef.js"],
+      "matches": ["https://www.codechef.com/*"]
     }
   ]
 }

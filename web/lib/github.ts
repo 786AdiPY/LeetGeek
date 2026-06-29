@@ -14,18 +14,34 @@ const COMMENT: Record<string, string> = {
   kt: "//", cs: "//",
 };
 
-export function buildFilePath(
+const PLATFORM_PREFIX: Record<string, string> = {
+  leetcode: "",
+  geeksforgeeks: "gfg_",
+  codechef: "cc_",
+};
+
+export function buildFilePaths(
   questionId: string,
   titleSlug: string,
   language: string,
-  topicTags: { name: string }[]
-): { filePath: string; ext: string } {
+  topicTags: { name: string }[],
+  platform = "leetcode"
+): { filePaths: string[]; ext: string } {
+  const prefix = PLATFORM_PREFIX[platform] ?? "";
   const qid = questionId.padStart(4, "0");
   const slug = titleSlug.replace(/-/g, "_");
   const ext = LANG_EXT[language] ?? "txt";
-  const topic = topicTags[0]?.name ?? "Uncategorized";
-  const folder = topic.replace(/\s+/g, "_").replace(/\//g, "_");
-  return { filePath: `${folder}/${qid}_${slug}.${ext}`, ext };
+
+  // CodeChef: flat folder, no topic segregation
+  if (platform === "codechef") {
+    return { filePaths: [`CodeChef/${prefix}${slug}.${ext}`], ext };
+  }
+
+  const fileName = platform === "leetcode" ? `${qid}_${slug}.${ext}` : `${prefix}${slug}.${ext}`;
+  const primaryTag = topicTags[0]?.name ?? "Uncategorized";
+  const folder = primaryTag.replace(/\s+/g, "_").replace(/\//g, "_");
+
+  return { filePaths: [`${folder}/${fileName}`], ext };
 }
 
 export function buildFileContent(

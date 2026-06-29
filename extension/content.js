@@ -97,7 +97,12 @@ async function handleAccepted(submissionId) {
 
 function getToken() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(["extensionToken"], (r) => resolve(r.extensionToken ?? null));
+    try {
+      chrome.storage.sync.get(["extensionToken"], (r) => resolve(r.extensionToken ?? null));
+    } catch {
+      console.warn('[LeetGeek] Extension context invalidated — reload page');
+      resolve(null);
+    }
   });
 }
 
@@ -138,6 +143,7 @@ async function syncToBackend(token, submissionId, detail) {
     submissionId,
     code: detail.code,
     language: detail.lang.name,
+    platform: 'leetcode',
     problem: {
       questionId: detail.question.questionId,
       title: detail.question.title,
@@ -156,8 +162,9 @@ async function syncToBackend(token, submissionId, detail) {
     });
     const result = await resp.json();
     if (result.status === "committed") {
-      console.log(`[LeetGeek] ✓ Committed: ${result.filePath}`);
-      chrome.runtime.sendMessage({ type: "COMMITTED", filePath: result.filePath });
+      const paths = result.filePaths ?? [result.filePath];
+      console.log(`[LeetGeek] ✓ Committed: ${paths.join(", ")}`);
+      chrome.runtime.sendMessage({ type: "COMMITTED", filePath: paths[0] });
     } else if (result.status === "already_synced") {
       console.log("[LeetGeek] Already synced.");
     } else {

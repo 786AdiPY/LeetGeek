@@ -25,10 +25,13 @@ export interface SyncedSubmission {
   committed_at: string;
 }
 
+export type Platform = "leetcode" | "geeksforgeeks" | "codechef";
+
 export interface SyncPayload {
   submissionId: string;
   code: string;
   language: string;
+  platform?: Platform;
   problem: {
     questionId: string;
     title: string;
