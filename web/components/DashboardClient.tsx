@@ -218,7 +218,7 @@ export function DashboardClient({ user, submissions }: Props) {
         </h2>
         <ol className="space-y-1.5 text-sm text-gray-400 list-none">
           {[
-            <><a href="https://github.com/786AdiPY/LeetcodeXGithub/releases/latest" target="_blank" rel="noreferrer" className="text-blue-400 underline">Download extension.zip</a> from GitHub Releases → unzip it</>,
+            <><a href="https://github.com/786AdiPY/LeetGeek/releases/latest" target="_blank" rel="noreferrer" className="text-blue-400 underline">Download extension.zip</a> from GitHub Releases → unzip it</>,
             <>Open Chrome → <code className="bg-gray-800 px-1.5 py-0.5 rounded text-xs">chrome://extensions</code> → enable Developer Mode</>,
             "Click Load Unpacked → select the unzipped folder",
             "Click the ⚡ icon in toolbar → paste your token above → Save",
