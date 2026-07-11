@@ -3,67 +3,133 @@
   <head>
     <meta charset="utf-8" />
     <style>
+      /* LeetGeek — warm "organic" theme, matching the web dashboard.
+         Self-contained (no remote fonts) so it works under extension CSP. */
+      :root {
+        --bg: #f5ead8;
+        --surface: #ebddc5;
+        --text: #201e1d;
+        --muted: #82796a;
+        --accent: #c67139;
+        --accent-600: #b2622d;
+        --accent-700: #8c491a;
+        --accent-100: #fff2eb;
+        --accent-800: #643312;
+        --accent-2-100: #f0fae1;
+        --accent-2-500: #8fa073;
+        --accent-2-700: #56633f;
+        --divider: rgba(32, 30, 29, 0.16);
+        --neutral-200: #eee7db;
+        --neutral-500: #a19786;
+        --neutral-700: #645c50;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #201e1d;
+          --surface: #2e2b25;
+          --text: #f6f0e6;
+          --muted: #a19786;
+          --accent: #f6a06b;
+          --accent-600: #f6a06b;
+          --accent-700: #ffc6a5;
+          --accent-100: #3a2a1e;
+          --accent-800: #ffc6a5;
+          --accent-2-100: #2b3320;
+          --accent-2-700: #aebf92;
+          --divider: rgba(246, 240, 230, 0.16);
+          --neutral-200: #3a352d;
+          --neutral-500: #6f6858;
+          --neutral-700: #c0b6a5;
+        }
+      }
+
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body {
-        width: 300px;
+        width: 320px;
         padding: 20px;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #0f172a;
-        color: #f1f5f9;
+        background: var(--bg);
+        color: var(--text);
       }
-      .logo { font-size: 22px; font-weight: 700; color: #fbbf24; margin-bottom: 4px; }
-      .sub { font-size: 12px; color: #64748b; margin-bottom: 18px; }
-      label { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+      .brand { display: flex; align-items: center; gap: 9px; }
+      .brand .mark {
+        display: grid; place-items: center; width: 30px; height: 30px;
+        border-radius: 9px; background: var(--accent-100);
+      }
+      .brand .mark svg { display: block; }
+      .brand .name { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+
+      .sub { font-size: 13px; color: var(--muted); margin: 8px 0 18px; }
+
+      label {
+        display: block; font-size: 12px; margin-bottom: 6px;
+        color: var(--muted);
+      }
       input {
         width: 100%;
-        padding: 9px 12px;
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 8px;
-        color: #f1f5f9;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--divider);
+        border-radius: 999px;
+        color: var(--text);
         font-size: 13px;
-        font-family: monospace;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
       }
-      input:focus { outline: none; border-color: #fbbf24; }
+      input::placeholder { color: var(--neutral-500); }
+      input:focus { outline: none; border-color: var(--accent); }
+
       button#save {
         width: 100%;
-        padding: 10px;
+        padding: 11px;
         margin-top: 12px;
-        background: #f59e0b;
+        background: var(--accent);
         border: none;
-        border-radius: 8px;
-        color: #0f172a;
-        font-weight: 600;
+        border-radius: 999px;
+        color: var(--bg);
+        font-weight: 700;
         font-size: 14px;
         cursor: pointer;
         transition: background 0.15s;
       }
-      button#save:hover { background: #d97706; }
+      button#save:hover { background: var(--accent-600); }
+      button#save:active { background: var(--accent-700); }
+
       .status {
         margin-top: 12px;
-        padding: 9px 12px;
-        border-radius: 8px;
-        font-size: 12px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: center;
         display: none;
       }
-      .status.ok  { background: #052e16; color: #4ade80; border: 1px solid #166534; display: block; }
-      .status.err { background: #450a0a; color: #f87171; border: 1px solid #991b1b; display: block; }
+      .status.ok  { background: var(--accent-2-100); color: var(--accent-2-700); display: block; }
+      .status.err { background: var(--accent-100); color: var(--accent-800); display: block; }
+
       .footer { margin-top: 14px; text-align: center; }
-      .footer a { color: #fbbf24; text-decoration: none; font-size: 11px; }
-      .footer a:hover { text-decoration: underline; }
+      .footer a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
+      .footer a:hover { color: var(--accent-700); }
     </style>
   </head>
   <body>
-    <div class="logo">⚡ LeetGeek</div>
-    <div class="sub">Auto-commit LeetCode solutions to GitHub</div>
+    <div class="brand">
+      <span class="mark">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="var(--accent)" stroke="none">
+          <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+        </svg>
+      </span>
+      <span class="name">LeetGeek</span>
+    </div>
+    <div class="sub">Auto-commit your solutions to GitHub.</div>
 
     <label>Extension Token</label>
-    <input type="password" id="token" placeholder="Paste token from localhost:3000" />
+    <input type="password" id="token" placeholder="Paste your token" />
     <button id="save">Save</button>
     <div id="status" class="status"></div>
 
     <div class="footer">
-      <a href="https://localhost:3000" target="_blank">Get your token →</a>
+      <a href="https://leet-geek.vercel.app/dashboard" target="_blank">Get your token →</a>
     </div>
 
     <script src="popup.js"></script>

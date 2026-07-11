@@ -2,6 +2,9 @@ const BACKEND = 'https://leet-geek.vercel.app';
 
 console.log('[LeetGeek] GFG content script loaded');
 
+// Mark this platform as "seen" so the dashboard can show it as connected.
+try { chrome.storage.local.get(['lg_seen'], (r) => { const s = r.lg_seen || {}; if (!s.geeksforgeeks) { s.geeksforgeeks = true; chrome.storage.local.set({ lg_seen: s }); } }); } catch {}
+
 // Inject page-context interceptor
 (function injectScript() {
   const s = document.createElement('script');
@@ -217,7 +220,6 @@ async function syncToBackend(token, submissionId, slug, detail, codeFromEvent, l
 
   // Topic: cached page tags first (captured before SPA nav), then DOM, then API
   const domTags = _cachedTags.length ? _cachedTags : getTagsFromDom();
-  console.log('[LeetGeek] GFG API info keys:', Object.keys(info).join(', '));
   const rawApiTags = info?.topic_list ?? info?.tags ?? info?.topic_tags ?? info?.subject_list ?? [];
   const apiTags = rawApiTags.map((t) => ({ name: typeof t === 'string' ? t : (t.name ?? t) }));
   const category = info?.category ?? info?.subject ?? null;
@@ -228,7 +230,6 @@ async function syncToBackend(token, submissionId, slug, detail, codeFromEvent, l
     : category
     ? [{ name: category }]
     : [{ name: 'Uncategorized' }];
-  console.log('[LeetGeek] GFG: using tags:', tags.map(t => t.name).join(', '));
 
   const payload = {
     submissionId,

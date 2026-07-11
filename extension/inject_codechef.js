@@ -4,10 +4,12 @@
 
   function isAccepted(data) {
     if (!data) return false;
-    const code = data?.result_code ?? data?.status ?? data?.verdict ?? '';
-    // "AC" = fully correct, "scored" = subtask partial/full — check score too
-    if (code === 'AC' || code === 'Accepted') return true;
-    if (code === 'scored') {
+    const raw = data?.result_code ?? data?.status ?? data?.verdict ??
+                data?.result?.result_code ?? data?.data?.result_code ?? '';
+    const code = String(raw).toLowerCase().trim();
+    // "AC"/"accepted" = fully correct; "scored"/"partial" = subtask — check score too
+    if (code === 'ac' || code === 'accepted') return true;
+    if (code === 'scored' || code === 'partial') {
       const score = parseFloat(data?.score ?? data?.total_score ?? data?.result?.score ?? 0);
       const max = parseFloat(data?.max_score ?? data?.result?.max_score ?? 100);
       return max > 0 && score >= max;
@@ -35,14 +37,21 @@
     }));
   }
 
+  // Any endpoint that could carry a submission verdict
+  function isSubmitUrl(url) {
+    return /\/api\/ide\/(run|submit|status)/i.test(url) ||
+           /ide\/submit/i.test(url) ||
+           /\/submissions?(\/|$)/i.test(url) ||
+           /\/status(\/|\?|$)/i.test(url) ||
+           /\/result(\/|\?|$)/i.test(url);
+  }
+
   const _fetch = window.fetch;
   window.fetch = async function (...args) {
     const res = await _fetch.apply(this, args);
     const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url ?? '');
 
-    // Run/submit + status polling endpoints
-    if (/\/api\/ide\/(run|submit|status)/i.test(url) ||
-        /\/submissions?(\/|$)/i.test(url)) {
+    if (isSubmitUrl(url)) {
       res.clone().json().then((data) => {
         if (isAccepted(data)) dispatch(data);
       }).catch(() => {});
@@ -61,7 +70,7 @@
   XMLHttpRequest.prototype.send = function (...args) {
     this.addEventListener('load', function () {
       const url = this.__lg_url ?? '';
-      if (!/submit|ide\/(run|status)/i.test(url)) return;
+      if (!isSubmitUrl(url)) return;
       const data = tryParse(this.responseText);
       if (data && isAccepted(data)) dispatch(data);
     });

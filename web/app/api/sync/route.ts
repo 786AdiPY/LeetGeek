@@ -7,6 +7,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://leetcode.com",
   "https://www.geeksforgeeks.org",
   "https://www.codechef.com",
+  "https://codeforces.com",
+  "https://www.hackerrank.com",
 ]);
 
 function corsHeaders(origin: string | null) {

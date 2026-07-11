@@ -126,9 +126,6 @@
     const method = (args[1]?.method ?? 'GET').toUpperCase();
     const body = args[1]?.body ?? null;
 
-    // Debug: log all requests so we can see what GFG calls
-    console.log('[LeetGeek] GFG fetch:', method, url.replace('https://','').substring(0, 80));
-
     // Capture code from ANY POST
     if (method === 'POST' && body) {
       const code = extractCodeFromBody(body);
@@ -136,9 +133,6 @@
       if (code && code.length > 20) {
         _pendingCode = code;
         _pendingLang = lang;
-        console.log('[LeetGeek] GFG: captured code from POST', url, 'length:', code.length);
-      } else {
-        console.log('[LeetGeek] GFG: POST with no extractable code, body type:', typeof body, body instanceof FormData ? 'FormData' : '');
       }
     }
 
@@ -146,15 +140,7 @@
 
     // Check ALL responses for acceptance signal
     res.clone().json().then((data) => {
-      if (isAccepted(data)) {
-        dispatch(data);
-      } else {
-        // Log any response that looks submission-related
-        const urlLower = url.toLowerCase();
-        if (urlLower.includes('submit') || urlLower.includes('result') || urlLower.includes('verdict')) {
-          console.log('[LeetGeek] GFG submission-related response:', JSON.stringify(data).substring(0, 200));
-        }
-      }
+      if (isAccepted(data)) dispatch(data);
     }).catch(() => {});
 
     return res;
@@ -169,17 +155,13 @@
     return _open.call(this, method, url, ...rest);
   };
   XMLHttpRequest.prototype.send = function (body, ...rest) {
-    const url = this.__lg_url ?? '';
     const method = this.__lg_method ?? 'GET';
-    console.log('[LeetGeek] GFG XHR:', method, url.replace('https://','').substring(0, 80));
     if (method === 'POST' && body) {
-      console.log('[LeetGeek] GFG XHR POST body type:', typeof body, body instanceof FormData ? 'FormData' : '', 'length:', String(body).length);
       const code = extractCodeFromBody(body);
       const lang = extractLangFromBody(body);
       if (code && code.length > 20) {
         _pendingCode = code;
         _pendingLang = lang;
-        console.log('[LeetGeek] GFG XHR: captured code, length:', code.length);
       }
     }
     this.addEventListener('load', function () {
@@ -194,7 +176,7 @@
     // Early hook capture (most reliable — hooked before GFG init)
     try {
       const val = window.__leetgeek?._editor?.getValue?.();
-      if (val && val.trim().length > 10) { console.log('[LeetGeek] GFG: got code from early hook'); return val; }
+      if (val && val.trim().length > 10) return val;
     } catch {}
     // Ace via DOM element
     for (const el of document.querySelectorAll('.ace_editor')) {

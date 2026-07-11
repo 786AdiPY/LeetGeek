@@ -2,6 +2,10 @@
 (function () {
   console.log('[LeetGeek] inject.js active');
 
+  // Verdicts that count as a pass (case-insensitive) across judges.
+  const ACCEPTED = new Set(["accepted", "ok", "success"]);
+  const isAccepted = (m) => ACCEPTED.has(String(m || "").toLowerCase().trim());
+
   const _fetch = window.fetch;
   window.fetch = async function (...args) {
     const res = await _fetch.apply(this, args);
@@ -11,10 +15,15 @@
     const restMatch = url.match(/\/submissions\/detail\/(\d+)\/check\/?/);
     if (restMatch) {
       res.clone().json().then((data) => {
-        if (data?.status_msg === "Accepted") {
+        if (data?.state !== "SUCCESS") return; // ignore pending/judging polls
+        if (isAccepted(data.status_msg)) {
           console.log('[LeetGeek] REST: Accepted', restMatch[1]);
           window.dispatchEvent(new CustomEvent("__leetsync_accepted", {
             detail: { submissionId: restMatch[1] },
+          }));
+        } else if (data.status_msg) {
+          window.dispatchEvent(new CustomEvent("__leetgeek_wrong", {
+            detail: { status: data.status_msg },
           }));
         }
       }).catch(() => {});
@@ -52,10 +61,15 @@
       if (!match) return;
       try {
         const data = JSON.parse(this.responseText);
-        if (data?.status_msg === "Accepted") {
+        if (data?.state !== "SUCCESS") return; // ignore pending/judging polls
+        if (isAccepted(data.status_msg)) {
           console.log('[LeetGeek] XHR: Accepted', match[1]);
           window.dispatchEvent(new CustomEvent("__leetsync_accepted", {
             detail: { submissionId: match[1] },
+          }));
+        } else if (data.status_msg) {
+          window.dispatchEvent(new CustomEvent("__leetgeek_wrong", {
+            detail: { status: data.status_msg },
           }));
         }
       } catch {}

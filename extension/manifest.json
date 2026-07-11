@@ -2,28 +2,76 @@
   "manifest_version": 3,
   "name": "LeetGeek",
   "version": "1.0.0",
-  "description": "Auto-commit LeetCode, GeeksForGeeks, and CodeChef solutions to GitHub.",
-  "permissions": ["storage"],
+  "description": "Auto-commit LeetCode, GeeksForGeeks, CodeChef, Codeforces, and HackerRank solutions to GitHub.",
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://leetcode.com/*",
     "https://www.geeksforgeeks.org/*",
     "https://www.codechef.com/*",
+    "https://codeforces.com/*",
+    "https://www.hackerrank.com/*",
     "https://leet-geek.vercel.app/*"
   ],
   "content_scripts": [
     {
-      "matches": ["https://leetcode.com/problems/*"],
-      "js": ["content.js"],
+      "matches": [
+        "https://leetcode.com/problems/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.geeksforgeeks.org/problems/*", "https://www.geeksforgeeks.org/problem/*"],
-      "js": ["content_gfg.js"],
+      "matches": [
+        "https://www.geeksforgeeks.org/problems/*",
+        "https://www.geeksforgeeks.org/problem/*"
+      ],
+      "js": [
+        "content_gfg.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.codechef.com/problems/*", "https://www.codechef.com/*/problems/*"],
-      "js": ["content_codechef.js"],
+      "matches": [
+        "https://www.codechef.com/problems/*",
+        "https://www.codechef.com/*/problems/*"
+      ],
+      "js": [
+        "content_codechef.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://codeforces.com/problemset/*",
+        "https://codeforces.com/contest/*",
+        "https://codeforces.com/gym/*",
+        "https://codeforces.com/submissions/*"
+      ],
+      "js": [
+        "content_codeforces.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.hackerrank.com/*"
+      ],
+      "js": [
+        "content_hackerrank.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://leet-geek.vercel.app/*"
+      ],
+      "js": [
+        "content_dashboard.js"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -36,16 +84,36 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["inject.js"],
-      "matches": ["https://leetcode.com/*"]
+      "resources": [
+        "inject.js"
+      ],
+      "matches": [
+        "https://leetcode.com/*"
+      ]
     },
     {
-      "resources": ["inject_gfg.js"],
-      "matches": ["https://www.geeksforgeeks.org/*"]
+      "resources": [
+        "inject_gfg.js"
+      ],
+      "matches": [
+        "https://www.geeksforgeeks.org/*"
+      ]
     },
     {
-      "resources": ["inject_codechef.js"],
-      "matches": ["https://www.codechef.com/*"]
+      "resources": [
+        "inject_codechef.js"
+      ],
+      "matches": [
+        "https://www.codechef.com/*"
+      ]
+    },
+    {
+      "resources": [
+        "inject_hackerrank.js"
+      ],
+      "matches": [
+        "https://www.hackerrank.com/*"
+      ]
     }
   ]
 }

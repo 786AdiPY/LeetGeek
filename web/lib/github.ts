@@ -28,6 +28,8 @@ export function buildFilePaths(
     leetcode: "LeetCode",
     geeksforgeeks: "GeeksForGeeks",
     codechef: "CodeChef",
+    codeforces: "Codeforces",
+    hackerrank: "HackerRank",
   };
   const folder = PLATFORM_FOLDER[platform] ?? "LeetCode";
 
@@ -38,6 +40,8 @@ const PLATFORM_URL: Record<string, string> = {
   leetcode: "https://leetcode.com/problems",
   geeksforgeeks: "https://www.geeksforgeeks.org/problems",
   codechef: "https://www.codechef.com/problems",
+  codeforces: "https://codeforces.com/problemset/problem",
+  hackerrank: "https://www.hackerrank.com/challenges",
 };
 
 export function buildFileContent(

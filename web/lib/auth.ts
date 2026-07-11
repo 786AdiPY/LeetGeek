@@ -7,7 +7,10 @@ export const authOptions: NextAuthOptions = {
     GithubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      authorization: { params: { scope: "read:user repo" } },
+      // prompt: "consent" forces GitHub to re-show the authorize screen on every
+      // sign-in, so after Sign out the user goes through the flow again instead
+      // of being silently re-authenticated.
+      authorization: { params: { scope: "read:user repo", prompt: "consent" } },
     }),
   ],
   callbacks: {

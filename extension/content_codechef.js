@@ -2,6 +2,9 @@ const BACKEND = 'https://leet-geek.vercel.app';
 
 console.log('[LeetGeek] CodeChef content script loaded');
 
+// Mark this platform as "seen" so the dashboard can show it as connected.
+try { chrome.storage.local.get(['lg_seen'], (r) => { const s = r.lg_seen || {}; if (!s.codechef) { s.codechef = true; chrome.storage.local.set({ lg_seen: s }); } }); } catch {}
+
 // Inject page-context interceptor
 (function injectScript() {
   const s = document.createElement('script');

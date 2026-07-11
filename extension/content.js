@@ -3,6 +3,9 @@ const BACKEND = "https://leet-geek.vercel.app";
 
 console.log('[LeetGeek] Content script loaded');
 
+// Mark this platform as "seen" so the dashboard can show it as connected.
+try { chrome.storage.local.get(['lg_seen'], (r) => { const s = r.lg_seen || {}; if (!s.leetcode) { s.leetcode = true; chrome.storage.local.set({ lg_seen: s }); } }); } catch {}
+
 // Inject page-context script to intercept fetch/XHR
 const injected = document.createElement("script");
 injected.src = chrome.runtime.getURL("inject.js");
@@ -12,21 +15,105 @@ injected.onload = () => { console.log('[LeetGeek] inject.js injected'); injected
 // --- Primary: event from inject.js ---
 window.addEventListener("__leetsync_accepted", async (e) => {
   console.log('[LeetGeek] Accepted event received', e.detail.submissionId);
+  document.getElementById("__leetgeek_toast")?.remove(); // clear any "stuck?" hint
   await handleAccepted(e.detail.submissionId);
 });
+
+// --- Wrong submission: suggest a video solution (free YouTube search) ---
+let _wrongToastAt = 0;
+window.addEventListener("__leetgeek_wrong", (e) => {
+  const now = Date.now();
+  if (now - _wrongToastAt < 20000) return; // debounce repeated fails
+  _wrongToastAt = now;
+  showVideoSuggestion(e.detail?.status);
+});
+
+function currentProblemTitle() {
+  const t = (document.title || "").replace(/\s*-\s*LeetCode.*$/i, "").trim();
+  if (t) return t;
+  const slug = location.pathname.split("/problems/")[1]?.replace(/\/$/, "").split("/")[0] || "";
+  return slug.replace(/-/g, " ");
+}
+
+function showVideoSuggestion(status) {
+  const title = currentProblemTitle();
+  if (!title) return;
+  document.getElementById("__leetgeek_toast")?.remove();
+
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " leetcode solution")}`;
+
+  const box = document.createElement("div");
+  box.id = "__leetgeek_toast";
+  box.style.cssText =
+    "position:fixed;bottom:20px;right:20px;z-index:2147483647;width:290px;" +
+    "background:#ebddc5;color:#201e1d;border:1px solid rgba(32,30,29,.16);" +
+    "border-radius:16px;box-shadow:0 12px 32px rgba(46,43,37,.22);padding:14px 16px;" +
+    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.4;";
+
+  const head = document.createElement("div");
+  head.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:6px;";
+  const brand = document.createElement("span");
+  brand.textContent = "⚡ LeetGeek";
+  brand.style.cssText = "font-weight:700;font-size:12px;color:#c67139;margin-right:auto;";
+  const close = document.createElement("button");
+  close.textContent = "×";
+  close.setAttribute("aria-label", "Dismiss");
+  close.style.cssText = "border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:#82796a;padding:0 2px;";
+  close.onclick = () => box.remove();
+  head.appendChild(brand);
+  head.appendChild(close);
+
+  const msg = document.createElement("div");
+  msg.textContent = `${status || "Not accepted"} — stuck on this one?`;
+  msg.style.cssText = "margin-bottom:10px;";
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noreferrer";
+  link.textContent = "▶  Watch video solutions";
+  link.style.cssText =
+    "display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:600;font-size:13px;" +
+    "background:#c67139;color:#f5ead8;padding:8px 14px;border-radius:999px;";
+
+  box.appendChild(head);
+  box.appendChild(msg);
+  box.appendChild(link);
+  document.body.appendChild(box);
+
+  setTimeout(() => box.remove(), 18000); // auto-dismiss
+}
 
 // --- Fallback: DOM mutation observer ---
 let domHandled = false;
 let domTimer = null;
 
 const observer = new MutationObserver(() => {
-  if (domHandled) return;
   if (domTimer) clearTimeout(domTimer);
-  domTimer = setTimeout(checkDomForAccepted, 800);
+  domTimer = setTimeout(() => { checkDomForAccepted(); checkDomForWrong(); }, 800);
 });
 observer.observe(document.body, { childList: true, subtree: true });
 
+// Suggest a video when the result banner shows a failed verdict — driven by the
+// DOM so it works regardless of which network path the LeetCode UI uses.
+const FAIL_VERDICTS = [
+  "Wrong Answer", "Compile Error", "Time Limit Exceeded",
+  "Runtime Error", "Memory Limit Exceeded", "Output Limit Exceeded",
+];
+function checkDomForWrong() {
+  const el = document.querySelector('[data-e2e-locator="submission-result"]');
+  const txt = el?.textContent?.trim() || "";
+  if (!txt || txt === "Accepted") return;
+  const verdict = FAIL_VERDICTS.find((v) => txt.includes(v));
+  if (!verdict) return;
+  const now = Date.now();
+  if (now - _wrongToastAt < 20000) return; // debounce
+  _wrongToastAt = now;
+  showVideoSuggestion(verdict);
+}
+
 async function checkDomForAccepted() {
+  if (domHandled) return;
   const accepted = findAcceptedElement();
   if (!accepted) return;
 
@@ -46,18 +133,11 @@ async function checkDomForAccepted() {
 }
 
 function findAcceptedElement() {
-  // Try known LC selectors first
-  for (const sel of ['[data-e2e-locator="submission-result"]', '.text-green-s']) {
-    try {
-      const el = document.querySelector(sel);
-      if (el?.textContent?.trim() === "Accepted") return el;
-    } catch {}
-  }
-  // Generic fallback — leaf node with exactly "Accepted"
-  for (const el of document.querySelectorAll("span, div, p")) {
-    if (el.children.length === 0 && el.textContent?.trim() === "Accepted") return el;
-  }
-  return null;
+  // Only the official submission-result banner — matching any "Accepted" text on
+  // the page gives false positives (acceptance rate, submission history, filters),
+  // which is what fired on a Compile Error.
+  const el = document.querySelector('[data-e2e-locator="submission-result"]');
+  return el && el.textContent?.trim() === "Accepted" ? el : null;
 }
 
 async function getLatestACForProblem(slug) {

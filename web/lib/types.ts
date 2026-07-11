@@ -25,7 +25,12 @@ export interface SyncedSubmission {
   committed_at: string;
 }
 
-export type Platform = "leetcode" | "geeksforgeeks" | "codechef";
+export type Platform =
+  | "leetcode"
+  | "geeksforgeeks"
+  | "codechef"
+  | "codeforces"
+  | "hackerrank";
 
 export interface SyncPayload {
   submissionId: string;
