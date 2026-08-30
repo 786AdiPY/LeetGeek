@@ -12,13 +12,49 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 function corsHeaders(origin: string | null) {
-  const allowed = origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://leetcode.com";
+  const allowed =
+    origin &&
+    (ALLOWED_ORIGINS.has(origin) ||
+      origin.startsWith("chrome-extension://") ||
+      origin.startsWith("moz-extension://"))
+      ? origin
+      : "https://leetcode.com";
   return {
     "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, x-extension-token",
     "Vary": "Origin",
   };
+}
+
+function isValidSourceCode(code: string): { valid: boolean; reason?: string } {
+  if (!code || typeof code !== "string" || code.trim().length < 5) {
+    return { valid: false, reason: "Code is empty or too short." };
+  }
+
+  const trimmed = code.trim();
+
+  // Common stdout/console output indicators that are NOT source code
+  const outputPatterns = [
+    /Total\s+Score\s*=/i,
+    /Well\s+done,\s*it's\s*correct/i,
+    /Execution\s+Time:/i,
+    /Your\s+Output:/i,
+    /^Correct\s+Answer!?$/im,
+    /^Subtask\s+Score/im,
+    /^Time\s*\(sec\):/im,
+  ];
+
+  for (const pattern of outputPatterns) {
+    if (pattern.test(trimmed)) {
+      return {
+        valid: false,
+        reason: "Detected console/execution output logs instead of source code.",
+      };
+    }
+  }
+
+  return { valid: true };
 }
 
 export async function OPTIONS(req: NextRequest) {
@@ -59,6 +95,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400, headers: CORS });
   }
 
+  const codeCheck = isValidSourceCode(code);
+  if (!codeCheck.valid) {
+    return NextResponse.json(
+      { error: `Code validation failed: ${codeCheck.reason}` },
+      { status: 400, headers: CORS }
+    );
+  }
+
   const alreadySynced = await isAlreadySynced(user.id, submissionId);
   if (alreadySynced) {
     return NextResponse.json({ status: "already_synced" }, { headers: CORS });
@@ -85,10 +129,11 @@ export async function POST(req: NextRequest) {
   const commitMessage = `solve: #${problem.questionId} ${problem.title} [${problem.difficulty}]`;
   const committedPaths: string[] = [];
   let lastSha = "";
+  let wasSkipped = false;
 
   for (const filePath of filePaths) {
     try {
-      lastSha = await commitToGitHub({
+      const res = await commitToGitHub({
         token: user.github_access_token,
         owner: user.target_repo_owner,
         repo: user.target_repo_name,
@@ -96,6 +141,8 @@ export async function POST(req: NextRequest) {
         content,
         message: commitMessage,
       });
+      lastSha = res.sha;
+      if (res.skipped) wasSkipped = true;
       committedPaths.push(filePath);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "GitHub API error";
@@ -115,6 +162,10 @@ export async function POST(req: NextRequest) {
     file_path: committedPaths.join(","),
     commit_sha: lastSha,
   });
+
+  if (wasSkipped) {
+    return NextResponse.json({ status: "already_synced", filePaths: committedPaths, commitSha: lastSha }, { headers: CORS });
+  }
 
   return NextResponse.json({ status: "committed", filePaths: committedPaths, commitSha: lastSha }, { headers: CORS });
 }

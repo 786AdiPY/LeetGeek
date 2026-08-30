@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "leetgeek@leet-geek.app": {
+      "updates": [
+        {
+          "version": "1.0.0",
+          "update_link": "https://github.com/786AdiPY/LeetGeek/releases/download/v1.0.0/leetgeek.xpi"
+        }
+      ]
+    }
+  }
+}

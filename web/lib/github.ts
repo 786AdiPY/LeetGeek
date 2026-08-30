@@ -69,7 +69,7 @@ export async function commitToGitHub(params: {
   filePath: string;
   content: string;
   message: string;
-}): Promise<string> {
+}): Promise<{ sha: string; skipped?: boolean }> {
   const octokit = new Octokit({ auth: params.token });
 
   let sha: string | undefined;
@@ -79,7 +79,17 @@ export async function commitToGitHub(params: {
       repo: params.repo,
       path: params.filePath,
     });
-    if (!Array.isArray(data)) sha = data.sha;
+    if (!Array.isArray(data)) {
+      sha = data.sha;
+      // Content deduplication: check if existing file content matches new content exactly
+      if ("content" in data && typeof data.content === "string") {
+        const existingContent = Buffer.from(data.content, "base64").toString("utf-8");
+        if (existingContent.trim() === params.content.trim()) {
+          console.log(`[LeetGeek] Deduplicated: content for ${params.filePath} is identical. Skipping commit.`);
+          return { sha: data.sha, skipped: true };
+        }
+      }
+    }
   } catch {
     // new file — no sha needed
   }
@@ -93,7 +103,7 @@ export async function commitToGitHub(params: {
     ...(sha ? { sha } : {}),
   });
 
-  return data.commit.sha ?? "";
+  return { sha: data.commit.sha ?? "" };
 }
 
 export async function listUserRepos(token: string) {

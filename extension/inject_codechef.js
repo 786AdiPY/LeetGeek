@@ -2,6 +2,37 @@
 (function () {
   console.log('[LeetGeek] inject_codechef.js active');
 
+  let _lastSubmittedCode = null;
+  let _lastSubmittedLang = null;
+
+  function extractCodeFromBody(body) {
+    if (!body) return null;
+    try {
+      if (typeof body === 'string') {
+        const json = JSON.parse(body);
+        return json.sourceCode ?? json.code ?? json.source ?? json.userCode ?? null;
+      }
+      if (body instanceof FormData) {
+        return body.get('sourceCode') ?? body.get('code') ?? body.get('source') ?? null;
+      }
+    } catch {}
+    return null;
+  }
+
+  function extractLangFromBody(body) {
+    if (!body) return null;
+    try {
+      if (typeof body === 'string') {
+        const json = JSON.parse(body);
+        return json.language ?? json.lang ?? json.languageId ?? null;
+      }
+      if (body instanceof FormData) {
+        return body.get('language') ?? body.get('lang') ?? null;
+      }
+    } catch {}
+    return null;
+  }
+
   function isAccepted(data) {
     if (!data) return false;
     const raw = data?.result_code ?? data?.status ?? data?.verdict ??
@@ -33,13 +64,19 @@
     const submissionId = getSubmissionId(data);
     console.log('[LeetGeek] CodeChef: Accepted/Full-score', submissionId, data);
     window.dispatchEvent(new CustomEvent('__leetgeek_cc_accepted', {
-      detail: { submissionId, raw: data },
+      detail: {
+        submissionId,
+        code: _lastSubmittedCode,
+        language: _lastSubmittedLang,
+        raw: data
+      },
     }));
   }
 
-  // Any endpoint that could carry a submission verdict
+  // EXCLUDE /run endpoints — only intercept real submission endpoints
   function isSubmitUrl(url) {
-    return /\/api\/ide\/(run|submit|status)/i.test(url) ||
+    if (/\/api\/ide\/run/i.test(url)) return false; // Ignore custom run testcases
+    return /\/api\/ide\/(submit|status)/i.test(url) ||
            /ide\/submit/i.test(url) ||
            /\/submissions?(\/|$)/i.test(url) ||
            /\/status(\/|\?|$)/i.test(url) ||
@@ -48,8 +85,17 @@
 
   const _fetch = window.fetch;
   window.fetch = async function (...args) {
-    const res = await _fetch.apply(this, args);
     const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url ?? '');
+
+    // Capture submitted code from POST request body if present
+    if (isSubmitUrl(url) && args[1]?.body) {
+      const extractedCode = extractCodeFromBody(args[1].body);
+      if (extractedCode) _lastSubmittedCode = extractedCode;
+      const extractedLang = extractLangFromBody(args[1].body);
+      if (extractedLang) _lastSubmittedLang = extractedLang;
+    }
+
+    const res = await _fetch.apply(this, args);
 
     if (isSubmitUrl(url)) {
       res.clone().json().then((data) => {
@@ -67,13 +113,21 @@
     this.__lg_url = url;
     return _open.call(this, method, url, ...rest);
   };
-  XMLHttpRequest.prototype.send = function (...args) {
+  XMLHttpRequest.prototype.send = function (body, ...args) {
+    const url = this.__lg_url ?? '';
+    if (isSubmitUrl(url) && body) {
+      const extractedCode = extractCodeFromBody(body);
+      if (extractedCode) _lastSubmittedCode = extractedCode;
+      const extractedLang = extractLangFromBody(body);
+      if (extractedLang) _lastSubmittedLang = extractedLang;
+    }
+
     this.addEventListener('load', function () {
-      const url = this.__lg_url ?? '';
       if (!isSubmitUrl(url)) return;
       const data = tryParse(this.responseText);
       if (data && isAccepted(data)) dispatch(data);
     });
-    return _send.apply(this, args);
+    return _send.call(this, body, ...args);
   };
 })();
+

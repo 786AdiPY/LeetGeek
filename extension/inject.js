@@ -2,14 +2,56 @@
 (function () {
   console.log('[LeetGeek] inject.js active');
 
+  let _lastSubmittedCode = null;
+  let _lastSubmittedLang = null;
+
+  function extractCodeFromBody(body) {
+    if (!body) return null;
+    try {
+      if (typeof body === 'string') {
+        const json = JSON.parse(body);
+        return json.typed_code ?? json.code ?? json.source ?? json.query ?? null;
+      }
+    } catch {}
+    return null;
+  }
+
+  function extractLangFromBody(body) {
+    if (!body) return null;
+    try {
+      if (typeof body === 'string') {
+        const json = JSON.parse(body);
+        return json.lang ?? json.language ?? null;
+      }
+    } catch {}
+    return null;
+  }
+
   // Verdicts that count as a pass (case-insensitive) across judges.
   const ACCEPTED = new Set(["accepted", "ok", "success"]);
   const isAccepted = (m) => ACCEPTED.has(String(m || "").toLowerCase().trim());
 
+  function dispatchAccepted(submissionId) {
+    window.dispatchEvent(new CustomEvent("__leetsync_accepted", {
+      detail: { submissionId, code: _lastSubmittedCode, lang: _lastSubmittedLang },
+    }));
+  }
+
   const _fetch = window.fetch;
   window.fetch = async function (...args) {
-    const res = await _fetch.apply(this, args);
     const url = typeof args[0] === "string" ? args[0] : (args[0]?.url ?? "");
+    const body = args[1]?.body ?? null;
+
+    if (url.includes("/submit/") || url.includes("/problems/")) {
+      if (body) {
+        const code = extractCodeFromBody(body);
+        if (code && typeof code === 'string' && code.length > 10) _lastSubmittedCode = code;
+        const lang = extractLangFromBody(body);
+        if (lang) _lastSubmittedLang = lang;
+      }
+    }
+
+    const res = await _fetch.apply(this, args);
 
     // REST check endpoint
     const restMatch = url.match(/\/submissions\/detail\/(\d+)\/check\/?/);
@@ -18,9 +60,7 @@
         if (data?.state !== "SUCCESS") return; // ignore pending/judging polls
         if (isAccepted(data.status_msg)) {
           console.log('[LeetGeek] REST: Accepted', restMatch[1]);
-          window.dispatchEvent(new CustomEvent("__leetsync_accepted", {
-            detail: { submissionId: restMatch[1] },
-          }));
+          dispatchAccepted(restMatch[1]);
         } else if (data.status_msg) {
           window.dispatchEvent(new CustomEvent("__leetgeek_wrong", {
             detail: { status: data.status_msg },
@@ -37,9 +77,7 @@
           const d = data?.data?.submissionDetail;
           if (d?.statusDisplay === "Accepted" && d?.id) {
             console.log('[LeetGeek] GraphQL: Accepted', d.id);
-            window.dispatchEvent(new CustomEvent("__leetsync_accepted", {
-              detail: { submissionId: String(d.id) },
-            }));
+            dispatchAccepted(String(d.id));
           }
         }).catch(() => {});
       }
@@ -55,18 +93,24 @@
     this.__lc_url = url;
     return _open.call(this, method, url, ...rest);
   };
-  XMLHttpRequest.prototype.send = function (...args) {
+  XMLHttpRequest.prototype.send = function (body, ...args) {
+    const url = this.__lc_url ?? "";
+    if (url.includes("/submit/") && body) {
+      const code = extractCodeFromBody(body);
+      if (code && typeof code === 'string' && code.length > 10) _lastSubmittedCode = code;
+      const lang = extractLangFromBody(body);
+      if (lang) _lastSubmittedLang = lang;
+    }
+
     this.addEventListener("load", function () {
-      const match = (this.__lc_url ?? "").match(/\/submissions\/detail\/(\d+)\/check\/?/);
+      const match = url.match(/\/submissions\/detail\/(\d+)\/check\/?/);
       if (!match) return;
       try {
         const data = JSON.parse(this.responseText);
         if (data?.state !== "SUCCESS") return; // ignore pending/judging polls
         if (isAccepted(data.status_msg)) {
           console.log('[LeetGeek] XHR: Accepted', match[1]);
-          window.dispatchEvent(new CustomEvent("__leetsync_accepted", {
-            detail: { submissionId: match[1] },
-          }));
+          dispatchAccepted(match[1]);
         } else if (data.status_msg) {
           window.dispatchEvent(new CustomEvent("__leetgeek_wrong", {
             detail: { status: data.status_msg },
@@ -74,6 +118,7 @@
         }
       } catch {}
     });
-    return _send.apply(this, args);
+    return _send.call(this, body, ...args);
   };
 })();
+

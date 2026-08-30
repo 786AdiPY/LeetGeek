@@ -16,7 +16,7 @@ injected.onload = () => { console.log('[LeetGeek] inject.js injected'); injected
 window.addEventListener("__leetsync_accepted", async (e) => {
   console.log('[LeetGeek] Accepted event received', e.detail.submissionId);
   document.getElementById("__leetgeek_toast")?.remove(); // clear any "stuck?" hint
-  await handleAccepted(e.detail.submissionId);
+  await handleAccepted(e.detail.submissionId, e.detail.code, e.detail.lang);
 });
 
 // --- Wrong submission: suggest a video solution (free YouTube search) ---

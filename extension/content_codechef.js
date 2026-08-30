@@ -83,13 +83,13 @@ function detectLanguage() {
   return 'cpp';
 }
 
-// Get code from editor
+// Get code from editor (DOM fallback)
 function getEditorCode() {
-  // Ace: read from element's attached instance (avoids virtual-scroll DOM trap)
-  for (const el of document.querySelectorAll('.ace_editor')) {
+  // Ace: read from element's attached instance (avoid output console)
+  for (const el of document.querySelectorAll('.ace_editor:not([class*="output"]):not([id*="output"])')) {
     try {
       const val = el.env?.editor?.getValue?.();
-      if (val && val.trim().length > 10) return val;
+      if (val && val.trim().length > 10 && !val.includes("Total Score =")) return val;
     } catch {}
   }
   // Ace: internal registry
@@ -98,37 +98,41 @@ function getEditorCode() {
       const instances = window.ace.edit.__instances ?? {};
       for (const ed of Object.values(instances)) {
         const val = ed?.getValue?.();
-        if (val && val.trim().length > 10) return val;
+        if (val && val.trim().length > 10 && !val.includes("Total Score =")) return val;
       }
     } catch {}
     for (const id of ['code', 'editor', 'aceEditor', 'code-editor']) {
       try {
         const val = window.ace.edit(id).getValue();
-        if (val && val.trim().length > 10) return val;
+        if (val && val.trim().length > 10 && !val.includes("Total Score =")) return val;
       } catch {}
     }
   }
   // Monaco
   if (window.monaco?.editor) {
     const models = window.monaco.editor.getModels();
-    if (models.length) return models[0].getValue();
+    for (const m of models) {
+      const val = m.getValue();
+      if (val && val.trim().length > 10 && !val.includes("Total Score =") && !val.includes("Execution Time:")) return val;
+    }
   }
   // CodeMirror
   const cm = document.querySelector('.CodeMirror');
   if (cm?.CodeMirror) return cm.CodeMirror.getValue();
-  // Textarea fallback
-  for (const ta of document.querySelectorAll('textarea')) {
+
+  // Textarea fallback — explicitly skip output textareas
+  for (const ta of document.querySelectorAll('textarea:not([readonly]):not([id*="output"]):not([class*="output"])')) {
     const val = ta.value;
-    if (val && val.trim().length > 10) return val;
+    if (val && val.trim().length > 10 && !val.includes("Total Score =") && !val.includes("Execution Time:")) return val;
   }
   return null;
 }
 
-async function syncToBackend(token, submissionId, problemCode, detail) {
-  const language = detectLanguage();
-  const code = getEditorCode();
+async function syncToBackend(token, submissionId, problemCode, detail, overrideCode, overrideLang) {
+  const language = overrideLang ?? detectLanguage();
+  const code = overrideCode ?? getEditorCode();
   if (!code) {
-    console.warn('[LeetGeek] CodeChef: could not extract code from editor');
+    console.warn('[LeetGeek] CodeChef: could not extract code from submission/editor');
     return;
   }
 
@@ -190,7 +194,7 @@ window.addEventListener('__leetgeek_cc_accepted', async (e) => {
   handled = true;
   setTimeout(() => { handled = false; }, 15000);
 
-  const { submissionId } = e.detail;
+  const { submissionId, code: interceptedCode, language: interceptedLang } = e.detail;
   console.log('[LeetGeek] CodeChef accepted event', submissionId);
 
   const problemCode = getProblemCode();
@@ -214,7 +218,7 @@ window.addEventListener('__leetgeek_cc_accepted', async (e) => {
   }
 
   const detail = await fetchCCProblemDetail(problemCode);
-  await syncToBackend(token, submissionId, problemCode, detail);
+  await syncToBackend(token, submissionId, problemCode, detail, interceptedCode, interceptedLang);
 });
 
 // --- DOM fallback: watch for "Well done" or score 100% ---

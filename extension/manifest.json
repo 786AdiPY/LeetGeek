@@ -75,8 +75,18 @@
       "run_at": "document_idle"
     }
   ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "leetgeek@leet-geek.app",
+      "strict_min_version": "109.0",
+      "update_url": "https://leet-geek.vercel.app/updates.json"
+    }
+  },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
   },
   "action": {
     "default_popup": "popup.html",
