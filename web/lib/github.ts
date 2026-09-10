@@ -1,17 +1,43 @@
 import { Octokit } from "@octokit/rest";
 
 const LANG_EXT: Record<string, string> = {
-  python3: "py", python: "py",
+  python3: "py", python: "py", py: "py",
   cpp: "cpp", c: "c",
   java: "java", javascript: "js",
   typescript: "ts", rust: "rs",
   go: "go", kotlin: "kt", csharp: "cs",
 };
 
+export function normalizeLanguage(lang: string): string {
+  if (!lang || typeof lang !== "string") return "txt";
+  const l = lang.toLowerCase().trim();
+
+  if (l.includes("cpp") || l.includes("c++") || l === "g++" || l.includes("gcc++")) return "cpp";
+  if (l.includes("python") || l.includes("pyth") || l.includes("pypy") || l.includes("py3")) return "py";
+  if (l.includes("java") && !l.includes("script")) return "java";
+  if (l.includes("javascript") || l.includes("node") || l === "js") return "js";
+  if (l.includes("typescript") || l === "ts") return "ts";
+  if (l.includes("c#") || l.includes("csharp") || l === "cs") return "cs";
+  if (l === "c" || l.includes("gcc") || l.includes("clang") || l.startsWith("c99") || l.startsWith("c11")) return "c";
+  if (l.includes("rust") || l === "rs") return "rs";
+  if (l.includes("golang") || l.includes("go")) return "go";
+  if (l.includes("kotlin") || l === "kt") return "kt";
+  if (l.includes("ruby") || l === "rb") return "rb";
+  if (l.includes("swift")) return "swift";
+  if (l.includes("php")) return "php";
+  if (l.includes("scala")) return "scala";
+  if (l.includes("haskell") || l === "hs") return "hs";
+  if (l.includes("shell") || l.includes("bash")) return "sh";
+  if (l.includes("sql")) return "sql";
+
+  return LANG_EXT[l] ?? "txt";
+}
+
 const COMMENT: Record<string, string> = {
   py: "#", cpp: "//", c: "//", java: "//",
   js: "//", ts: "//", rs: "//", go: "//",
-  kt: "//", cs: "//",
+  kt: "//", cs: "//", rb: "#", swift: "//",
+  php: "//", scala: "//", hs: "--", sh: "#",
 };
 
 export function buildFilePaths(
@@ -22,7 +48,7 @@ export function buildFilePaths(
   platform = "leetcode"
 ): { filePaths: string[]; ext: string } {
   const slug = titleSlug.replace(/-/g, "_");
-  const ext = LANG_EXT[language] ?? "txt";
+  const ext = normalizeLanguage(language);
 
   const PLATFORM_FOLDER: Record<string, string> = {
     leetcode: "LeetCode",
