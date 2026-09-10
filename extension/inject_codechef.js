@@ -24,10 +24,10 @@
     try {
       if (typeof body === 'string') {
         const json = JSON.parse(body);
-        return json.language ?? json.lang ?? json.languageId ?? null;
+        return json.language ?? json.lang ?? json.languageId ?? json.language_id ?? json.langName ?? json.language_name ?? null;
       }
       if (body instanceof FormData) {
-        return body.get('language') ?? body.get('lang') ?? null;
+        return body.get('language') ?? body.get('lang') ?? body.get('languageId') ?? body.get('language_id') ?? body.get('language_name') ?? null;
       }
     } catch {}
     return null;

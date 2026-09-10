@@ -113,7 +113,8 @@ export async function POST(req: NextRequest) {
     problem.titleSlug,
     language,
     problem.topicTags,
-    platform
+    platform,
+    code
   );
 
   const content = buildFileContent(

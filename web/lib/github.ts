@@ -8,9 +8,71 @@ const LANG_EXT: Record<string, string> = {
   go: "go", kotlin: "kt", csharp: "cs",
 };
 
-export function normalizeLanguage(lang: string): string {
-  if (!lang || typeof lang !== "string") return "txt";
-  const l = lang.toLowerCase().trim();
+export function detectLanguageFromCode(code?: string): string | null {
+  if (!code || typeof code !== "string") return null;
+  const c = code.trim();
+
+  // C++ indicators
+  if (
+    c.includes("#include") ||
+    c.includes("using namespace std") ||
+    c.includes("std::") ||
+    c.includes("cout <<") ||
+    c.includes("cin >>")
+  ) {
+    return "cpp";
+  }
+
+  // Python indicators
+  if (
+    c.includes("def ") ||
+    c.includes("import sys") ||
+    c.includes("if __name__ ==") ||
+    /for\s+\w+\s+in\s+range/.test(c) ||
+    (/print\s*\(/.test(c) && !c.includes(";"))
+  ) {
+    return "py";
+  }
+
+  // Java indicators
+  if (
+    c.includes("public class") ||
+    c.includes("System.out.print") ||
+    c.includes("public static void main")
+  ) {
+    return "java";
+  }
+
+  // C indicators
+  if (
+    c.includes("#include <stdio.h>") ||
+    c.includes("#include <stdlib.h>") ||
+    c.includes("printf(") ||
+    c.includes("scanf(")
+  ) {
+    return "c";
+  }
+
+  // Rust indicators
+  if (c.includes("fn main()") || c.includes("println!")) {
+    return "rs";
+  }
+
+  // Go indicators
+  if (c.includes("package main") || c.includes("fmt.Println")) {
+    return "go";
+  }
+
+  // JavaScript / TypeScript
+  if (c.includes("console.log") || c.includes("function ") || c.includes("const ") || c.includes("let ")) {
+    return "js";
+  }
+
+  return null;
+}
+
+export function normalizeLanguage(lang: unknown, code?: string): string {
+  const l = lang !== undefined && lang !== null ? String(lang).toLowerCase().trim() : "";
 
   if (l.includes("cpp") || l.includes("c++") || l === "g++" || l.includes("gcc++")) return "cpp";
   if (l.includes("python") || l.includes("pyth") || l.includes("pypy") || l.includes("py3")) return "py";
@@ -30,7 +92,15 @@ export function normalizeLanguage(lang: string): string {
   if (l.includes("shell") || l.includes("bash")) return "sh";
   if (l.includes("sql")) return "sql";
 
-  return LANG_EXT[l] ?? "txt";
+  if (LANG_EXT[l]) return LANG_EXT[l];
+
+  // Code Sniffing Fallback if lang is missing, numeric, or unmapped
+  if (code) {
+    const codeExt = detectLanguageFromCode(code);
+    if (codeExt) return codeExt;
+  }
+
+  return "txt";
 }
 
 const COMMENT: Record<string, string> = {
@@ -45,10 +115,11 @@ export function buildFilePaths(
   titleSlug: string,
   language: string,
   topicTags: { name: string }[],
-  platform = "leetcode"
+  platform = "leetcode",
+  code?: string
 ): { filePaths: string[]; ext: string } {
   const slug = titleSlug.replace(/-/g, "_");
-  const ext = normalizeLanguage(language);
+  const ext = normalizeLanguage(language, code);
 
   const PLATFORM_FOLDER: Record<string, string> = {
     leetcode: "LeetCode",
