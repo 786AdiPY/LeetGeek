@@ -78,8 +78,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "leetgeek@leet-geek.app",
-      "strict_min_version": "109.0",
-      "update_url": "https://leet-geek.vercel.app/updates.json"
+      "strict_min_version": "109.0"
     }
   },
   "background": {
