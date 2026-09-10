@@ -189,10 +189,13 @@ async function syncToBackend(token, submissionId, problemCode, detail, overrideC
 
 // --- Primary: event from inject_codechef.js ---
 let handled = false;
+let domHandled = false;
+
 window.addEventListener('__leetgeek_cc_accepted', async (e) => {
-  if (handled) return;
+  if (handled || domHandled) return;
   handled = true;
-  setTimeout(() => { handled = false; }, 15000);
+  domHandled = true;
+  setTimeout(() => { handled = false; domHandled = false; }, 15000);
 
   const { submissionId, code: interceptedCode, language: interceptedLang } = e.detail;
   console.log('[LeetGeek] CodeChef accepted event', submissionId);
@@ -226,20 +229,21 @@ let domHandled = false;
 let domTimer = null;
 
 const observer = new MutationObserver(() => {
-  if (domHandled) return;
+  if (domHandled || handled) return;
   if (domTimer) clearTimeout(domTimer);
   domTimer = setTimeout(checkDomForAccepted, 1000);
 });
 observer.observe(document.body, { childList: true, subtree: true });
 
 async function checkDomForAccepted() {
-  if (domHandled) return;
+  if (domHandled || handled) return;
 
   const successEl = findSuccessElement();
   if (!successEl) return;
 
   domHandled = true;
-  setTimeout(() => { domHandled = false; }, 15000);
+  handled = true;
+  setTimeout(() => { domHandled = false; handled = false; }, 15000);
 
   console.log('[LeetGeek] CodeChef DOM fallback: accepted detected');
 

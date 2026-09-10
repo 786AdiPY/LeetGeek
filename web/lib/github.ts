@@ -120,16 +120,50 @@ export async function commitToGitHub(params: {
     // new file — no sha needed
   }
 
-  const { data } = await octokit.repos.createOrUpdateFileContents({
-    owner: params.owner,
-    repo: params.repo,
-    path: params.filePath,
-    message: params.message,
-    content: Buffer.from(params.content).toString("base64"),
-    ...(sha ? { sha } : {}),
-  });
-
-  return { sha: data.commit.sha ?? "" };
+  try {
+    const { data } = await octokit.repos.createOrUpdateFileContents({
+      owner: params.owner,
+      repo: params.repo,
+      path: params.filePath,
+      message: params.message,
+      content: Buffer.from(params.content).toString("base64"),
+      ...(sha ? { sha } : {}),
+    });
+    return { sha: data.commit.sha ?? "" };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const status = (err as { status?: number })?.status;
+    if (status === 409 || msg.includes("expected") || msg.includes("sha")) {
+      console.warn(`[LeetGeek] SHA collision for ${params.filePath}, refetching latest SHA and retrying...`);
+      try {
+        const { data: latest } = await octokit.repos.getContent({
+          owner: params.owner,
+          repo: params.repo,
+          path: params.filePath,
+        });
+        const freshSha = !Array.isArray(latest) ? latest.sha : undefined;
+        if (freshSha && !Array.isArray(latest) && "content" in latest && typeof latest.content === "string") {
+          const existingContent = Buffer.from(latest.content, "base64").toString("utf-8");
+          if (existingContent.trim() === params.content.trim()) {
+            console.log(`[LeetGeek] Deduplicated on retry: content for ${params.filePath} is identical.`);
+            return { sha: freshSha, skipped: true };
+          }
+        }
+        const { data: retryData } = await octokit.repos.createOrUpdateFileContents({
+          owner: params.owner,
+          repo: params.repo,
+          path: params.filePath,
+          message: params.message,
+          content: Buffer.from(params.content).toString("base64"),
+          ...(freshSha ? { sha: freshSha } : {}),
+        });
+        return { sha: retryData.commit.sha ?? "" };
+      } catch (retryErr) {
+        throw retryErr;
+      }
+    }
+    throw err;
+  }
 }
 
 export async function listUserRepos(token: string) {
