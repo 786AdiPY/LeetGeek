@@ -35,53 +35,103 @@ function currentProblemTitle() {
   return slug.replace(/-/g, " ");
 }
 
-function showVideoSuggestion(status) {
+async function showVideoSuggestion(status, platformName = "leetcode") {
   const title = currentProblemTitle();
   if (!title) return;
   document.getElementById("__leetgeek_toast")?.remove();
 
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " leetcode solution")}`;
-
   const box = document.createElement("div");
   box.id = "__leetgeek_toast";
   box.style.cssText =
-    "position:fixed;bottom:20px;right:20px;z-index:2147483647;width:290px;" +
-    "background:#ebddc5;color:#201e1d;border:1px solid rgba(32,30,29,.16);" +
-    "border-radius:16px;box-shadow:0 12px 32px rgba(46,43,37,.22);padding:14px 16px;" +
-    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.4;";
+    "position:fixed;top:20px;right:20px;z-index:2147483647;width:310px;" +
+    "background:#1e1e24;color:#f3f4f6;border:1px solid rgba(255,255,255,.12);" +
+    "border-radius:14px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:14px;overflow:hidden;" +
+    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.4;";
 
   const head = document.createElement("div");
-  head.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:6px;";
+  head.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;";
   const brand = document.createElement("span");
-  brand.textContent = "⚡ LeetGeek";
-  brand.style.cssText = "font-weight:700;font-size:12px;color:#c67139;margin-right:auto;";
+  brand.textContent = "⚡ LeetGeek Help";
+  brand.style.cssText = "font-weight:700;font-size:12px;color:#f97316;letter-spacing:.3px;";
   const close = document.createElement("button");
   close.textContent = "×";
   close.setAttribute("aria-label", "Dismiss");
-  close.style.cssText = "border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:#82796a;padding:0 2px;";
+  close.style.cssText = "border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:#9ca3af;padding:0 2px;";
   close.onclick = () => box.remove();
   head.appendChild(brand);
   head.appendChild(close);
 
   const msg = document.createElement("div");
-  msg.textContent = `${status || "Not accepted"} — stuck on this one?`;
-  msg.style.cssText = "margin-bottom:10px;";
+  msg.textContent = `${status || "Not accepted"} — stuck on this problem?`;
+  msg.style.cssText = "font-weight:600;font-size:12px;color:#d1d5db;margin-bottom:10px;";
 
-  const link = document.createElement("a");
-  link.href = url;
-  link.target = "_blank";
-  link.rel = "noreferrer";
-  link.textContent = "▶  Watch video solutions";
-  link.style.cssText =
-    "display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:600;font-size:13px;" +
-    "background:#c67139;color:#f5ead8;padding:8px 14px;border-radius:999px;";
+  const contentArea = document.createElement("div");
+  contentArea.textContent = "Loading solution video...";
+  contentArea.style.cssText = "font-size:12px;color:#9ca3af;";
 
   box.appendChild(head);
   box.appendChild(msg);
-  box.appendChild(link);
+  box.appendChild(contentArea);
   document.body.appendChild(box);
 
-  setTimeout(() => box.remove(), 18000); // auto-dismiss
+  setTimeout(() => box.remove(), 25000); // auto-dismiss
+
+  try {
+    const res = await fetch(`${BACKEND}/api/youtube?q=${encodeURIComponent(title)}&platform=${platformName}`);
+    if (res.ok) {
+      const data = await res.json();
+      const video = data.videos?.[0];
+      if (video) {
+        contentArea.innerHTML = "";
+
+        if (video.thumbnail) {
+          const imgWrap = document.createElement("div");
+          imgWrap.style.cssText = "position:relative;width:100%;height:140px;border-radius:8px;overflow:hidden;margin-bottom:8px;background:#000;";
+          const img = document.createElement("img");
+          img.src = video.thumbnail;
+          img.alt = video.title;
+          img.style.cssText = "width:100%;height:100%;object-fit:cover;";
+          imgWrap.appendChild(img);
+          contentArea.appendChild(imgWrap);
+        }
+
+        const videoTitle = document.createElement("div");
+        videoTitle.textContent = video.title;
+        videoTitle.style.cssText = "font-weight:600;font-size:12px;color:#f9fafb;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;";
+
+        const channel = document.createElement("div");
+        channel.textContent = `📺 ${video.channelTitle}`;
+        channel.style.cssText = "font-size:11px;color:#9ca3af;margin-bottom:10px;";
+
+        const link = document.createElement("a");
+        link.href = video.url;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = "▶ Watch Solution on YouTube";
+        link.style.cssText =
+          "display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;font-weight:600;font-size:12px;" +
+          "background:#f97316;color:#ffffff;padding:8px 12px;border-radius:8px;transition:background .2s;";
+
+        contentArea.appendChild(videoTitle);
+        contentArea.appendChild(channel);
+        contentArea.appendChild(link);
+        return;
+      }
+    }
+  } catch {}
+
+  // Fallback link if fetch fails
+  const fallbackUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " " + platformName + " solution")}`;
+  contentArea.innerHTML = "";
+  const link = document.createElement("a");
+  link.href = fallbackUrl;
+  link.target = "_blank";
+  link.rel = "noreferrer";
+  link.textContent = "▶ Search Solutions on YouTube";
+  link.style.cssText =
+    "display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:600;font-size:12px;" +
+    "background:#f97316;color:#ffffff;padding:8px 12px;border-radius:8px;";
+  contentArea.appendChild(link);
 }
 
 // --- Fallback: DOM mutation observer ---

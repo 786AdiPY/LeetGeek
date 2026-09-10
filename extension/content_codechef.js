@@ -224,6 +224,113 @@ window.addEventListener('__leetgeek_cc_accepted', async (e) => {
   await syncToBackend(token, submissionId, problemCode, detail, interceptedCode, interceptedLang);
 });
 
+// --- Wrong submission: suggest a video solution ---
+let _wrongToastAt = 0;
+window.addEventListener('__leetgeek_cc_wrong', (e) => {
+  const now = Date.now();
+  if (now - _wrongToastAt < 20000) return;
+  _wrongToastAt = now;
+  showVideoSuggestion(e.detail?.status);
+});
+
+async function showVideoSuggestion(status) {
+  const problemCode = getProblemCode();
+  if (!problemCode) return;
+  document.getElementById("__leetgeek_toast")?.remove();
+
+  const box = document.createElement("div");
+  box.id = "__leetgeek_toast";
+  box.style.cssText =
+    "position:fixed;top:20px;right:20px;z-index:2147483647;width:310px;" +
+    "background:#1e1e24;color:#f3f4f6;border:1px solid rgba(255,255,255,.12);" +
+    "border-radius:14px;box-shadow:0 16px 36px rgba(0,0,0,.45);padding:14px;overflow:hidden;" +
+    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.4;";
+
+  const head = document.createElement("div");
+  head.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;";
+  const brand = document.createElement("span");
+  brand.textContent = "⚡ LeetGeek Help";
+  brand.style.cssText = "font-weight:700;font-size:12px;color:#f97316;letter-spacing:.3px;";
+  const close = document.createElement("button");
+  close.textContent = "×";
+  close.setAttribute("aria-label", "Dismiss");
+  close.style.cssText = "border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:#9ca3af;padding:0 2px;";
+  close.onclick = () => box.remove();
+  head.appendChild(brand);
+  head.appendChild(close);
+
+  const msg = document.createElement("div");
+  msg.textContent = `CodeChef ${status || "Not accepted"} — stuck on this problem?`;
+  msg.style.cssText = "font-weight:600;font-size:12px;color:#d1d5db;margin-bottom:10px;";
+
+  const contentArea = document.createElement("div");
+  contentArea.textContent = "Loading solution video...";
+  contentArea.style.cssText = "font-size:12px;color:#9ca3af;";
+
+  box.appendChild(head);
+  box.appendChild(msg);
+  box.appendChild(contentArea);
+  document.body.appendChild(box);
+
+  setTimeout(() => box.remove(), 25000);
+
+  try {
+    const res = await fetch(`${BACKEND}/api/youtube?q=${encodeURIComponent(problemCode)}&platform=codechef`);
+    if (res.ok) {
+      const data = await res.json();
+      const video = data.videos?.[0];
+      if (video) {
+        contentArea.innerHTML = "";
+
+        if (video.thumbnail) {
+          const imgWrap = document.createElement("div");
+          imgWrap.style.cssText = "position:relative;width:100%;height:140px;border-radius:8px;overflow:hidden;margin-bottom:8px;background:#000;";
+          const img = document.createElement("img");
+          img.src = video.thumbnail;
+          img.alt = video.title;
+          img.style.cssText = "width:100%;height:100%;object-fit:cover;";
+          imgWrap.appendChild(img);
+          contentArea.appendChild(imgWrap);
+        }
+
+        const videoTitle = document.createElement("div");
+        videoTitle.textContent = video.title;
+        videoTitle.style.cssText = "font-weight:600;font-size:12px;color:#f9fafb;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;";
+
+        const channel = document.createElement("div");
+        channel.textContent = `📺 ${video.channelTitle}`;
+        channel.style.cssText = "font-size:11px;color:#9ca3af;margin-bottom:10px;";
+
+        const link = document.createElement("a");
+        link.href = video.url;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = "▶ Watch Solution on YouTube";
+        link.style.cssText =
+          "display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;font-weight:600;font-size:12px;" +
+          "background:#f97316;color:#ffffff;padding:8px 12px;border-radius:8px;";
+
+        contentArea.appendChild(videoTitle);
+        contentArea.appendChild(channel);
+        contentArea.appendChild(link);
+        return;
+      }
+    }
+  } catch {}
+
+  const fallbackUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(problemCode + " codechef solution")}`;
+  contentArea.innerHTML = "";
+  const link = document.createElement("a");
+  link.href = fallbackUrl;
+  link.target = "_blank";
+  link.rel = "noreferrer";
+  link.textContent = "▶ Search Solutions on YouTube";
+  link.style.cssText =
+    "display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:600;font-size:12px;" +
+    "background:#f97316;color:#ffffff;padding:8px 12px;border-radius:8px;";
+  contentArea.appendChild(link);
+}
+
 // --- DOM fallback: watch for "Well done" or score 100% ---
 let domTimer = null;
 

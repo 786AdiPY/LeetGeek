@@ -73,6 +73,14 @@
     }));
   }
 
+  function dispatchWrong(data) {
+    const raw = data?.result_code ?? data?.status ?? data?.verdict ?? data?.result?.result_code ?? '';
+    if (!raw || String(raw).toLowerCase() === 'running' || String(raw).toLowerCase() === 'compiling') return;
+    window.dispatchEvent(new CustomEvent('__leetgeek_cc_wrong', {
+      detail: { status: String(raw) }
+    }));
+  }
+
   // EXCLUDE /run endpoints — only intercept real submission endpoints
   function isSubmitUrl(url) {
     if (/\/api\/ide\/run/i.test(url)) return false; // Ignore custom run testcases
@@ -100,6 +108,7 @@
     if (isSubmitUrl(url)) {
       res.clone().json().then((data) => {
         if (isAccepted(data)) dispatch(data);
+        else dispatchWrong(data);
       }).catch(() => {});
     }
 
@@ -125,7 +134,10 @@
     this.addEventListener('load', function () {
       if (!isSubmitUrl(url)) return;
       const data = tryParse(this.responseText);
-      if (data && isAccepted(data)) dispatch(data);
+      if (data) {
+        if (isAccepted(data)) dispatch(data);
+        else dispatchWrong(data);
+      }
     });
     return _send.call(this, body, ...args);
   };
