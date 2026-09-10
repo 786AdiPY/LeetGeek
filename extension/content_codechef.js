@@ -225,7 +225,6 @@ window.addEventListener('__leetgeek_cc_accepted', async (e) => {
 });
 
 // --- DOM fallback: watch for "Well done" or score 100% ---
-let domHandled = false;
 let domTimer = null;
 
 const observer = new MutationObserver(() => {
