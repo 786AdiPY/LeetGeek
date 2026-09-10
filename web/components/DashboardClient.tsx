@@ -432,7 +432,7 @@ export function DashboardClient({ user, submissions }: Props) {
           <h6 className="text-muted" style={{ margin: 0 }}>Install the extension</h6>
           <ol style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px" }}>
             <li>
-              <a href="https://github.com/786AdiPY/LeetGeek/releases/latest/download/extension.zip" download style={{ fontWeight: 600 }}>Download extension.zip</a>, then unzip it.
+              <a href="/extension.zip" download style={{ fontWeight: 600 }}>Download extension.zip</a>, then unzip it.
             </li>
             <li>
               Open your browser extension settings  → enable Developer Mode.
